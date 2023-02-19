@@ -22,6 +22,14 @@ public class MemberRepository {
 
     static final private String TABLE = "member";
 
+    static final RowMapper<Member> rowMapper = (ResultSet resultSet, int rowNum) -> Member.builder()
+            .id(resultSet.getLong("id"))
+            .email(resultSet.getString("email"))
+            .nickname(resultSet.getString("nickname"))
+            .birthday(resultSet.getObject("birthday", LocalDate.class))
+            .createdAt(resultSet.getObject("createdAt", LocalDateTime.class))
+            .build();
+
     public Optional<Member> findById(Long id) {
         /*
             select *
@@ -31,13 +39,7 @@ public class MemberRepository {
         var sql = String.format("SELECT * FROM %s WHERE id = :id", TABLE);
         var param = new MapSqlParameterSource()
                 .addValue("id", id);
-        RowMapper<Member> rowMapper = (ResultSet resultSet, int rowNum) -> Member.builder()
-                .id(resultSet.getLong("id"))
-                .email(resultSet.getString("email"))
-                .nickname(resultSet.getString("nickname"))
-                .birthday(resultSet.getObject("birthday", LocalDate.class))
-                .createdAt(resultSet.getObject("createdAt", LocalDateTime.class))
-                .build();
+
         var member = namedParameterJdbcTemplate.queryForObject(sql, param, rowMapper);
         return Optional.ofNullable(member);
     }
@@ -49,7 +51,7 @@ public class MemberRepository {
         if (member.getId() == null) {
             return insert(member);
         }
-        return member;
+        return update(member);
     }
 
     private Member insert(Member member) {
@@ -68,6 +70,9 @@ public class MemberRepository {
     }
 
     private Member update(Member member) {
+        var sql = String.format("UPDATE %s set email = :email, nickname = :nickname, birthday = :birthday WHERE id = :id", TABLE);
+        SqlParameterSource params = new BeanPropertySqlParameterSource(member);
+        namedParameterJdbcTemplate.update(sql, params);
         return member;
     }
 }
