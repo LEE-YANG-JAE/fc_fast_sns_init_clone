@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -22,7 +23,7 @@ public class MemberRepository {
 
     static final private String TABLE = "member";
 
-    static final RowMapper<Member> rowMapper = (ResultSet resultSet, int rowNum) -> Member.builder()
+    static final RowMapper<Member> ROW_MAPPER = (ResultSet resultSet, int rowNum) -> Member.builder()
             .id(resultSet.getLong("id"))
             .email(resultSet.getString("email"))
             .nickname(resultSet.getString("nickname"))
@@ -40,9 +41,19 @@ public class MemberRepository {
         var param = new MapSqlParameterSource()
                 .addValue("id", id);
 
-        var member = namedParameterJdbcTemplate.queryForObject(sql, param, rowMapper);
+        var member = namedParameterJdbcTemplate.queryForObject(sql, param, ROW_MAPPER);
         return Optional.ofNullable(member);
     }
+
+    public List<Member> findAllByIdIn(List<Long> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        var sql = String.format("SELECT * FROM %S WHERE id in (:ids)", TABLE);
+        var params = new MapSqlParameterSource().addValue("ids", ids);;
+        return namedParameterJdbcTemplate.query(sql, params, ROW_MAPPER);
+    }
+
     public Member save(Member member) {
         /*
             member id를 보고 갱신 또는 삽입을 정함
